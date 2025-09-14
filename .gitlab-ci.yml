@@ -1,0 +1,46 @@
+---
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_DEPTH: 100
+  PKG_VER: 0.0.0
+
+stages:
+  - build
+  - test
+  - publish
+  - check_depedends
+
+include:
+  - project: "developers/v2/libs/essentials/ci"
+    ref: main
+    file:
+      - 'linux/conan.yml'
+      - 'utils/variables.yml'
+
+local_variables:
+  extends: .variables_core_job
+  script:
+    - !reference [ .svariables, conan_project_name ]
+
+build:alse:
+  stage: build
+  extends: .build_extend_static
+  artifacts:
+    when: on_success
+    paths:
+      - 'build/Release/geoscan_manager'
+
+build:deb:
+  stage: publish
+  tags: [ alse ]
+  script:
+    - chmod +x scripts/*.sh
+    - scripts/alse-deploy.sh
+  needs:
+    - job: build:alse
+      artifacts: true
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - "*.deb"
